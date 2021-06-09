@@ -1,0 +1,156 @@
+<html>
+<head>
+<title>Simula</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+</head>
+<body>
+  <nav class="navbar navbar-dark bg-primary">
+    <div class="container">
+      <a class="navbar-brand" href="#">Simula apuestas</a>
+    </div>
+  </nav>
+  <div class="container">
+    
+    <table class="table">
+      <tr>
+        <th>Monto</th>
+        <th># Apuestas</th>
+        <th>Pasadas</th>
+        <th>Momio Bajo</th>
+        <th>Momio Alto</th>
+        <th>Step</th>
+        <th>Probabilidad</th>
+        <th></th>
+      </tr>
+      <tr>
+        <td>
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">$</span>
+            <input type="number" value="1000" class="form-control" id="monto">
+          </div>
+        </td>
+        <td>
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">#</span>
+            <input type="number" value="20" class="form-control" id="apuestas">
+          </div>
+        </td>
+        <td>
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">#</span>
+            <input type="number" value="1" class="form-control" id="pasadas">
+          </div>
+        </td>
+        <td>
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">Inf.</span>
+            <input type="number" value="-600" class="form-control" id="momio_bajo">
+          </div>
+        </td>
+        <td>
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">Sup.</span>
+            <input type="number" value="-300" class="form-control" id="momio_alto">
+          </div>
+        </td>
+        <td>
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">Step</span>
+            <input type="number" value="50" class="form-control" id="step">
+          </div>
+        </td>
+        <td>
+          <button type="button" class="btn btn-primary" id="generar">Generar</button>
+        </td>
+      </tr>
+    </table>
+    <div id="resultado"></div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.slim.min.js" integrity="sha256-u7e5khyithlIdTpu22PHhENmPcRdFiHRjhAuHcs05RI=" crossorigin="anonymous"></script>
+  <script>
+    $("#generar").on("click", function() {
+      $("#resultado").html("Generando...");
+
+      var monto        = $("#monto").val();
+      var apuestas     = $("#apuestas").val();
+      var pasadas      = $("#pasadas").val();
+      var momio_bajo   = $("#momio_bajo").val();
+      var momio_alto   = $("#momio_alto").val();
+      var step         = $("#step").val();
+
+      var step_n = Math.abs(Math.floor((Math.abs(momio_bajo) - Math.abs(momio_alto)) / step));
+
+
+      var tabla = [];
+      var genera = 0;
+      var total_pasadas = 0;
+
+      for (var p = 1; p <= pasadas; p++) {
+        if (monto <= 0) break;
+        total_pasadas += 1;
+        tabla[p] = {};
+        token = Math.floor(monto / apuestas);
+        tabla[p].monto_inicial = monto;
+        monto = 0;
+        tabla[p].monto_final = monto;
+        tabla[p].token = token;
+        tabla[p].ganadas = 0;
+        tabla[p].resultados = [];
+        for(var a = 1; a <= apuestas; a++) {
+
+          renglon = {}
+          
+          renglon.momio = parseInt(momio_bajo)+ Math.floor(Math.random() * step_n) * step;
+          
+          genera =  ((100 / renglon.momio) * -token) + token;
+          renglon.genera = Math.round((genera + Number.EPSILON) * 100) / 100;
+
+          renglon.probabilidad = Math.abs(renglon.momio) / (Math.abs(renglon.momio) + 100);
+          
+           
+          if (Math.random() <= (renglon.probabilidad) ) {
+            // Gana
+            renglon.gana = "SI";
+            renglon.monto = renglon.genera;
+            tabla[p].ganadas += 1;
+            monto = parseFloat(monto) + parseFloat(renglon.monto);
+          } else {
+            // Pierde
+            renglon.gana = "NO";
+            renglon.monto = 0;
+          }
+          tabla[p].monto_final = Math.round((monto + Number.EPSILON) * 100) / 100 
+          tabla[p].resultados[a] = renglon;
+        }
+      }
+
+      var res = '<h1>Resultado $' + Math.round((monto + Number.EPSILON) * 100) / 100  + ' ('+ total_pasadas + ' pasadas)</h1>';
+
+      var inicial = 0;
+      for (var p = 1; p <= total_pasadas; p++) {
+        inicial = Math.round((parseFloat(tabla[p].monto_inicial) + Number.EPSILON) * 100) / 100 ;
+        res += '<h2>Pasada ' + p + ', Monto $' + inicial + ', Token $' + tabla[p].token + '</h2>';
+        res += '<table class="table"><tr><th>#</th><th>Momio</th><th>Genera</th><th>Probabilidad</th><th>Gana</th><th>Monto</th></tr>';
+        for(var a = 1; a <= apuestas; a++) {
+          res += '<tr>'
+          res += '<td>' + a + '</td>';
+          res += '<td>' + tabla[p].resultados[a].momio + '</td>';
+          res += '<td>$' + tabla[p].resultados[a].genera + '</td>';
+          res += '<td>' +  Math.round((tabla[p].resultados[a].probabilidad + Number.EPSILON) * 100) / 100 * 100 + '%</td>';
+          res += '<td>' + tabla[p].resultados[a].gana + '</td>';
+          res += '<td>$' + tabla[p].resultados[a].monto + '</td>';
+          res += '</tr>';
+        }
+        res += '<tr><th></th><th></th><th></th><th></th><th>' + tabla[p].ganadas + '</th><th>$' + tabla[p].monto_final + '</th></tr>'
+        res += '</table>';
+      }
+
+      
+      $("#resultado").html(res);
+
+    });
+  </script>
+</body>
+</html>
+
